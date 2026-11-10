@@ -14,9 +14,12 @@ from smritikosh.models.retrieval import (
     TextMatch,
 )
 from smritikosh.models.types import (
+    Call,
     Capture,
     Chunk,
     ChunkingStrategy,
+    Edge,
+    Import,
     ParsedFile,
     SearchResult,
     SourceFile,
@@ -24,11 +27,14 @@ from smritikosh.models.types import (
 )
 
 __all__ = [
+    "Call",
     "CandidateScore",
     "Capture",
     "Chunk",
     "ChunkingStrategy",
+    "Edge",
     "HybridSearchOptions",
+    "Import",
     "IndexInfo",
     "IndexedChunk",
     "OutlineEntry",
