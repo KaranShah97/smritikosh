@@ -3,6 +3,7 @@
 from smritikosh.models.retrieval import (
     CandidateScore,
     HybridSearchOptions,
+    ImpactRow,
     IndexedChunk,
     IndexInfo,
     OutlineEntry,
@@ -34,6 +35,7 @@ __all__ = [
     "ChunkingStrategy",
     "Edge",
     "HybridSearchOptions",
+    "ImpactRow",
     "Import",
     "IndexInfo",
     "IndexedChunk",
