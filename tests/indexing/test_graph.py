@@ -193,15 +193,14 @@ def test_should_follow_relative_imports_under_a_source_root() -> None:
     }
 
 
-def test_should_not_resolve_a_name_defined_in_two_files() -> None:
+def test_should_not_resolve_a_name_that_is_not_imported() -> None:
     edges = _edges(
         {
-            "a.py": "def parse(): ...",
-            "b.py": "def parse(): ...",
-            "c.py": """
-            def run():
-                parse()
+            "a.py": """
+            def run(callback):
+                callback()
             """,
+            "b.py": "def callback(): ...",
         }
     )
 

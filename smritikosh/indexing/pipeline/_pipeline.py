@@ -177,9 +177,7 @@ async def _run_pipeline(
         concurrency=file_concurrency,
         item_done=_item_done,
     )
-    storage.replace_edges(
-        resolve(set(storage.get_all_file_paths()), *storage.load_graph())
-    )
+    storage.replace_edges(resolve(storage.get_all_file_paths(), *storage.load_graph()))
 
 
 # ── Public entry point ────────────────────────────────────────────────────────

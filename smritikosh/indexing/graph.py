@@ -151,14 +151,12 @@ class _Index:
         self.kind: dict[str, str] = {}
         self.parent: dict[str, str | None] = {}
         self.in_file: dict[tuple[str, str], list[str]] = defaultdict(list)
-        self.named: dict[str, list[str]] = defaultdict(list)
         self.members: dict[tuple[str, str], list[str]] = defaultdict(list)
         for s in symbols:
             self.kind[s.id] = s.kind
             self.parent[s.id] = s.parent
             if s.parent is None:
                 self.in_file[(s.path, s.name)].append(s.id)
-                self.named[s.name].append(s.id)
             else:
                 self.members[(s.parent, s.name)].append(s.id)
 
@@ -201,7 +199,7 @@ class _Index:
             if module is None:
                 return None
             return _one(self.in_file.get((module, imported[1]), []))
-        return _one(self.named.get(name, []))
+        return None
 
     def module_of(self, path: str, local: str) -> str | None:
         if (path, local) in self.aliases:
