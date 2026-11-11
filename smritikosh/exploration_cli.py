@@ -29,7 +29,6 @@ __all__ = ["explore"]
 
 MAX_QUERIES = 8
 MAX_QUERY_CHARS = 500
-MAX_SYMBOL_MATCHES = 20
 MAX_IMPACT_ROWS = 200
 
 
@@ -125,11 +124,6 @@ def _echo_search_prose(
 
 
 def _echo_matches(name: str, matches: list[Symbol], *, prose: bool) -> None:
-    if not matches:
-        click.echo(f"No symbol named {name}.")
-        return
-    truncated: bool = len(matches) > MAX_SYMBOL_MATCHES
-    matches = matches[:MAX_SYMBOL_MATCHES]
     if not prose:
         _echo_toon(
             {
@@ -140,13 +134,11 @@ def _echo_matches(name: str, matches: list[Symbol], *, prose: bool) -> None:
                         "end_line": symbol.end_line,
                     }
                     for symbol in matches
-                ],
-                "truncated": truncated,
+                ]
             }
         )
         return
-    count: str = f"More than {MAX_SYMBOL_MATCHES}" if truncated else str(len(matches))
-    click.echo(f"{count} symbols match {name}; pass one of these ids:")
+    click.echo(f"{name} matches more than one symbol; pass one of these ids:")
     for symbol in matches:
         click.echo(f"  {symbol.id}  {symbol.start_line}-{symbol.end_line}")
 
@@ -302,7 +294,6 @@ def _tools_payload() -> dict[str, object]:
             "Treat search results as candidates; verify material claims with chunks.",
             "Batch independent reads with repeated --range and avoid overlaps.",
             "Read relevant implementation and test bodies.",
-            "Before changing a definition, run impact on it and read its callers.",
             (
                 "Target at most 12 Smritikosh CLI calls after tools; exceed only "
                 "to close material evidence gaps."
@@ -623,10 +614,10 @@ def impact(name: str, direction: str, depth: int, db_path: str, prose: bool) -> 
     """
     try:
         with DuckDBSourceReader(db_path) as reader:
-            matches: list[Symbol] = reader.find_symbols(
-                name, limit=MAX_SYMBOL_MATCHES + 1
-            )
-            if len(matches) != 1:
+            matches: list[Symbol] = reader.find_symbols(name)
+            if not matches:
+                raise click.ClickException(f"No symbol named {name}.")
+            if len(matches) > 1:
                 _echo_matches(name, matches, prose=prose)
                 return
             target: Symbol = matches[0]

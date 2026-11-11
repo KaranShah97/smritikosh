@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Literal
 
 from smritikosh.models import (
     ImpactRow,
@@ -139,7 +139,7 @@ class SourceReader(ABC):
         self,
         symbol_id: str,
         *,
-        direction: str = "in",
+        direction: Literal["in", "out"] = "in",
         depth: int = 1,
         limit: int = 200,
     ) -> list[ImpactRow]:

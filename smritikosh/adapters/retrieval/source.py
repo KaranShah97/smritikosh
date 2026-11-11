@@ -6,7 +6,7 @@ import json
 import re
 from dataclasses import replace
 from pathlib import Path
-from typing import TYPE_CHECKING, Final
+from typing import TYPE_CHECKING, Final, Literal
 
 import duckdb
 
@@ -453,23 +453,15 @@ class DuckDBSourceReader(SourceReader):
 
     def find_symbols(self, name: str, *, limit: int = 20) -> list[Symbol]:
         self._validate_limit(limit)
-        if ":" in name:
-            where, parameters = "id = ?", [name]
-        else:
-            where = "qualname = ? OR ends_with(qualname, '.' || ?)"
-            parameters = [name, name]
         rows = self._graph_query(
-            f"""
+            """
             SELECT id, name, kind, path, start_line, end_line, parent
-            FROM (
-                SELECT *, split_part(split_part(id, ':', 2), '@', 1) AS qualname
-                FROM symbols
-            )
-            WHERE {where}
+            FROM symbols
+            WHERE id = ? OR ends_with(id, ':' || ?) OR ends_with(id, '.' || ?)
             ORDER BY id
             LIMIT ?
-            """,  # noqa: S608
-            [*parameters, limit],
+            """,
+            [name, name, name, limit],
         )
         return [Symbol(*row) for row in rows]
 
@@ -477,13 +469,11 @@ class DuckDBSourceReader(SourceReader):
         self,
         symbol_id: str,
         *,
-        direction: str = "in",
+        direction: Literal["in", "out"] = "in",
         depth: int = 1,
         limit: int = 200,
     ) -> list[ImpactRow]:
         self._validate_limit(limit)
-        if direction not in ("in", "out"):
-            raise ValueError("direction must be 'in' or 'out'")
         neighbour, anchor = ("src", "dst") if direction == "in" else ("dst", "src")
         rows = self._graph_query(
             f"""

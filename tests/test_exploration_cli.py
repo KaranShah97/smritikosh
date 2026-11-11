@@ -109,7 +109,6 @@ def test_should_list_agent_facing_tool_usage_as_toon() -> None:
         "Treat search results as candidates; verify material claims with chunks.",
         "Batch independent reads with repeated --range and avoid overlaps.",
         "Read relevant implementation and test bodies.",
-        "Before changing a definition, run impact on it and read its callers.",
         (
             "Target at most 12 Smritikosh CLI calls after tools; exceed only "
             "to close material evidence gaps."
@@ -957,7 +956,7 @@ def test_should_list_candidates_for_an_ambiguous_name(tmp_path: Path) -> None:
     result = _run_impact(tmp_path, explorer, "helper", "--prose")
 
     assert result.output.splitlines() == [
-        "2 symbols match helper; pass one of these ids:",
+        "helper matches more than one symbol; pass one of these ids:",
         "  app/other.py:Box.helper  2-3",
         "  app/util.py:helper  1-2",
     ]
@@ -966,17 +965,16 @@ def test_should_list_candidates_for_an_ambiguous_name(tmp_path: Path) -> None:
 
 def test_should_list_candidates_as_toon(tmp_path: Path) -> None:
     explorer = _mock_explorer()
-    explorer.find_symbols.return_value = [_BOX_HELPER, _HELPER] * 11
+    explorer.find_symbols.return_value = [_BOX_HELPER, _HELPER]
 
     payload = toons.loads(_run_impact(tmp_path, explorer, "helper").output)
 
-    assert len(payload["matches"]) == 20
-    assert payload["matches"][0] == {
-        "symbol": "app/other.py:Box.helper",
-        "start_line": 2,
-        "end_line": 3,
+    assert payload == {
+        "matches": [
+            {"symbol": "app/other.py:Box.helper", "start_line": 2, "end_line": 3},
+            {"symbol": "app/util.py:helper", "start_line": 1, "end_line": 2},
+        ]
     }
-    assert payload["truncated"] is True
 
 
 def test_should_say_when_no_symbol_matches(tmp_path: Path) -> None:
@@ -985,7 +983,8 @@ def test_should_say_when_no_symbol_matches(tmp_path: Path) -> None:
 
     result = _run_impact(tmp_path, explorer, "missing")
 
-    assert result.output == "No symbol named missing.\n"
+    assert result.exit_code != 0
+    assert "No symbol named missing." in result.output
 
 
 def test_should_ask_for_a_reindex_without_a_call_graph(tmp_path: Path) -> None:

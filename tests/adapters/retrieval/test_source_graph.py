@@ -127,11 +127,6 @@ def test_caps_the_rows(reader: DuckDBSourceReader) -> None:
     assert len(reader.impact("app/util.py:helper", depth=2, limit=1)) == 1
 
 
-def test_rejects_an_unknown_direction(reader: DuckDBSourceReader) -> None:
-    with pytest.raises(ValueError, match="direction"):
-        reader.impact("app/util.py:helper", direction="sideways")
-
-
 def test_counts_same_named_calls_that_resolved_to_nothing(
     reader: DuckDBSourceReader,
 ) -> None:
