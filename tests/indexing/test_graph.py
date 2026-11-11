@@ -98,6 +98,46 @@ def test_should_resolve_self_calls_to_the_enclosing_class() -> None:
     assert edges == {("a.py:Cache.refresh", "a.py:Cache.update")}
 
 
+def test_should_resolve_methods_called_on_a_new_instance() -> None:
+    edges = _edges(
+        {
+            "repo.py": """
+            class Repo:
+                def save(self): ...
+            """,
+            "app.py": """
+            from repo import Repo
+
+            def run():
+                Repo().save()
+            """,
+        }
+    )
+
+    assert edges == {
+        ("app.py:run", "repo.py:Repo"),
+        ("app.py:run", "repo.py:Repo.save"),
+    }
+
+
+def test_should_not_guess_methods_on_a_returned_value() -> None:
+    edges = _edges(
+        {
+            "a.py": """
+            class Repo:
+                def save(self): ...
+
+            def make_repo(): ...
+
+            def run():
+                make_repo().save()
+            """
+        }
+    )
+
+    assert edges == {("a.py:run", "a.py:make_repo")}
+
+
 def test_should_not_guess_the_target_of_an_untyped_receiver() -> None:
     edges = _edges(
         {
