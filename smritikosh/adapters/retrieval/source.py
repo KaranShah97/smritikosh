@@ -11,12 +11,14 @@ from typing import TYPE_CHECKING, Final
 import duckdb
 
 from smritikosh.models import (
+    ImpactRow,
     IndexedChunk,
     IndexInfo,
     OutlineEntry,
     SearchOptions,
     SearchResult,
     SourceLine,
+    Symbol,
     TextMatch,
 )
 from smritikosh.ports.embedder import EmbeddingIdentity
@@ -448,6 +450,99 @@ class DuckDBSourceReader(SourceReader):
             SourceLine(line_number=number, text=lines[number])
             for number in sorted(lines)
         ]
+
+    def find_symbols(self, name: str, *, limit: int = 20) -> list[Symbol]:
+        self._validate_limit(limit)
+        if ":" in name:
+            where, parameters = "id = ?", [name]
+        else:
+            where = "qualname = ? OR ends_with(qualname, '.' || ?)"
+            parameters = [name, name]
+        rows = self._graph_query(
+            f"""
+            SELECT id, name, kind, path, start_line, end_line, parent
+            FROM (
+                SELECT *, split_part(split_part(id, ':', 2), '@', 1) AS qualname
+                FROM symbols
+            )
+            WHERE {where}
+            ORDER BY id
+            LIMIT ?
+            """,  # noqa: S608
+            [*parameters, limit],
+        )
+        return [Symbol(*row) for row in rows]
+
+    def impact(
+        self,
+        symbol_id: str,
+        *,
+        direction: str = "in",
+        depth: int = 1,
+        limit: int = 200,
+    ) -> list[ImpactRow]:
+        self._validate_limit(limit)
+        if direction not in ("in", "out"):
+            raise ValueError("direction must be 'in' or 'out'")
+        neighbour, anchor = ("src", "dst") if direction == "in" else ("dst", "src")
+        rows = self._graph_query(
+            f"""
+            WITH RECURSIVE walk(depth, symbol, path, line) AS (
+                SELECT 1, {neighbour}, path, line FROM edges WHERE {anchor} = $symbol
+                UNION
+                SELECT walk.depth + 1, e.{neighbour}, e.path, e.line
+                FROM walk JOIN edges AS e ON e.{anchor} = walk.symbol
+                WHERE walk.depth < $depth
+            )
+            SELECT min(walk.depth), walk.symbol, walk.path,
+                   list_sort(list_distinct(list(walk.line))),
+                   s.start_line, s.end_line
+            FROM walk JOIN symbols AS s ON s.id = walk.symbol
+            GROUP BY walk.symbol, walk.path, s.start_line, s.end_line
+            ORDER BY 1, 3, 2
+            LIMIT $limit
+            """,  # noqa: S608
+            {"symbol": symbol_id, "depth": depth, "limit": limit},
+        )
+        return [
+            ImpactRow(
+                depth=row[0],
+                symbol=row[1],
+                call_path=row[2],
+                call_lines=tuple(row[3]),
+                start_line=row[4],
+                end_line=row[5],
+            )
+            for row in rows
+        ]
+
+    def unresolved_calls(self, symbol_id: str) -> int:
+        rows = self._graph_query(
+            """
+            SELECT count(*)
+            FROM calls AS c
+            WHERE c.name = (SELECT name FROM symbols WHERE id = ?)
+              AND NOT EXISTS (
+                  SELECT 1
+                  FROM edges AS e JOIN symbols AS s ON s.id = e.dst
+                  WHERE e.src = c.scope AND e.path = c.path
+                    AND e.line = c.line AND s.name = c.name
+              )
+            """,
+            [symbol_id],
+        )
+        return rows[0][0]
+
+    def _graph_query(
+        self, sql: str, parameters: list[object] | dict[str, object]
+    ) -> list[tuple]:
+        try:
+            return self._connection.execute(sql, parameters).fetchall()
+        except duckdb.CatalogException as exc:
+            raise RuntimeError(
+                "This index has no call graph yet. "
+                "Re-run `smritikosh index <repo_path>` to build it."
+            ) from exc
 
     def _search_vector(
         self,
