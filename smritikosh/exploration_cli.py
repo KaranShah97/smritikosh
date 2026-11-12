@@ -259,7 +259,9 @@ def _tools_payload() -> dict[str, object]:
                     "[--depth N] [--db-path PATH]"
                 ),
                 "returns": (
-                    "TOON rows: depth,symbol,call_path,call_lines,start_line,end_line"
+                    "TOON rows: depth,symbol,call_path,call_lines,start_line,end_line; "
+                    "unresolved counts same-named calls that could not be linked, "
+                    "so no rows does not always mean no callers"
                 ),
             },
         ],
