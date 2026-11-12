@@ -108,10 +108,10 @@ class _Storage:
     def get_chunks_by_ids(self, chunk_ids: list[str]) -> list[dict[str, Any]]:
         return []
 
-    def replace_graph(self, path, symbols, calls, imports) -> None: ...
+    def replace_graph(self, path, *graph) -> None: ...
 
     def load_graph(self):
-        return [], [], []
+        return [], [], [], [], []
 
     def replace_edges(self, edges) -> None: ...
 

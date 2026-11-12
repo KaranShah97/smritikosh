@@ -58,6 +58,21 @@ class Import:
 
 
 @dataclass
+class TypeHint:
+    path: str
+    scope: str
+    name: str
+    type_name: str
+
+
+@dataclass
+class Base:
+    path: str
+    symbol: str
+    name: str
+
+
+@dataclass
 class Edge:
     src: str
     dst: str

@@ -9,12 +9,21 @@ from dataclasses import astuple
 import duckdb
 
 from smritikosh.constants import DEFAULT_DB_PATH
-from smritikosh.models import Call, Chunk, Edge, Import, SourceFile, Symbol
+from smritikosh.models import (
+    Base,
+    Call,
+    Chunk,
+    Edge,
+    Import,
+    SourceFile,
+    Symbol,
+    TypeHint,
+)
 from smritikosh.ports.storage import StorageAdapter
 
 __all__ = ["DuckDBAdapter"]
 
-_GRAPH_TABLES = ("symbols", "calls", "imports")
+_GRAPH_TABLES = ("symbols", "calls", "imports", "type_hints", "bases")
 
 
 class DuckDBAdapter(StorageAdapter):
@@ -90,6 +99,25 @@ class DuckDBAdapter(StorageAdapter):
                 module TEXT NOT NULL,
                 name   TEXT,
                 alias  TEXT
+            )
+            """
+        )
+        self.con.execute(
+            """
+            CREATE TABLE IF NOT EXISTS type_hints (
+                path      TEXT NOT NULL,
+                scope     TEXT NOT NULL,
+                name      TEXT NOT NULL,
+                type_name TEXT NOT NULL
+            )
+            """
+        )
+        self.con.execute(
+            """
+            CREATE TABLE IF NOT EXISTS bases (
+                path   TEXT NOT NULL,
+                symbol TEXT NOT NULL,
+                name   TEXT NOT NULL
             )
             """
         )
@@ -228,6 +256,8 @@ class DuckDBAdapter(StorageAdapter):
         symbols: list[Symbol],
         calls: list[Call],
         imports: list[Import],
+        hints: list[TypeHint],
+        bases: list[Base],
     ) -> None:
         self.con.begin()
         try:
@@ -248,16 +278,30 @@ class DuckDBAdapter(StorageAdapter):
                     "INSERT INTO imports VALUES (?, ?, ?, ?)",
                     [astuple(i) for i in imports],
                 )
+            if hints:
+                self.con.executemany(
+                    "INSERT INTO type_hints VALUES (?, ?, ?, ?)",
+                    [astuple(h) for h in hints],
+                )
+            if bases:
+                self.con.executemany(
+                    "INSERT INTO bases VALUES (?, ?, ?)",
+                    [astuple(b) for b in bases],
+                )
             self.con.commit()
         except Exception:
             self.con.rollback()
             raise
 
-    def load_graph(self) -> tuple[list[Symbol], list[Call], list[Import]]:
+    def load_graph(
+        self,
+    ) -> tuple[list[Symbol], list[Call], list[Import], list[TypeHint], list[Base]]:
         return (
             [Symbol(*row) for row in self._rows("symbols")],
             [Call(*row) for row in self._rows("calls")],
             [Import(*row) for row in self._rows("imports")],
+            [TypeHint(*row) for row in self._rows("type_hints")],
+            [Base(*row) for row in self._rows("bases")],
         )
 
     def _rows(self, table: str) -> list[tuple]:

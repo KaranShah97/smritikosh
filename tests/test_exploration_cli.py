@@ -71,6 +71,7 @@ def test_should_list_agent_facing_tool_usage_as_toon() -> None:
         "chunks",
         "impact",
     ]
+    assert "unresolved" in payload["tools"][3]["returns"]
     assert (
         payload["tools"][0]["usage"] == "smritikosh explore search QUERY... "
         "--max-results 12 [--db-path PATH]"

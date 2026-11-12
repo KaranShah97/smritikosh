@@ -2,7 +2,8 @@
 ;
 ; Definitions only. The upstream file also emits @reference.call, which measured
 ; at 6.9x the definition volume across the reference corpus and has no consumer
-; in the chunker; it can come back with the call-graph work that needs it.
+; in the chunker. The call graph's calls, imports and type hints live in
+; refs.scm instead, so the chunker never sees them.
 ;
 ; `async def` is a plain function_definition with an optional `async` token, and
 ; `X: Final[int] = 1` is an assignment carrying a `type:` field. Neither

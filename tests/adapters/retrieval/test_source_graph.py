@@ -33,6 +33,15 @@ FILES = {
     ),
     "app/api.py": "from app.service import run\n\n\ndef handle():\n    run()\n",
     "app/loop.py": "def ping():\n    pong()\n\n\ndef pong():\n    ping()\n",
+    "app/net.py": "class Net:\n    def send(self):\n        pass\n",
+    "app/job.py": (
+        "class Job:\n"
+        "    def __init__(self, net):\n"
+        "        self.net = net\n"
+        "\n"
+        "    def run(self):\n"
+        "        self.net.send()\n"
+    ),
 }
 
 
@@ -131,6 +140,10 @@ def test_counts_same_named_calls_that_resolved_to_nothing(
     reader: DuckDBSourceReader,
 ) -> None:
     assert reader.unresolved_calls("app/util.py:helper") == 1
+
+
+def test_counts_calls_on_an_attribute_as_unresolved(reader: DuckDBSourceReader) -> None:
+    assert reader.unresolved_calls("app/net.py:Net.send") == 1
 
 
 def test_asks_for_a_reindex_when_the_graph_is_missing(tmp_path: Path) -> None:

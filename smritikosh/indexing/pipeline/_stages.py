@@ -17,6 +17,7 @@ from smritikosh.indexing.extractor import extract_file
 from smritikosh.indexing.graph import graph_file
 from smritikosh.indexing.parser import parse_file
 from smritikosh.models import (
+    Base,
     Call,
     Capture,
     Chunk,
@@ -25,6 +26,7 @@ from smritikosh.models import (
     ParsedFile,
     SourceFile,
     Symbol,
+    TypeHint,
 )
 
 
@@ -53,5 +55,5 @@ def _chunk(
 @sm.threaded
 def _graph(
     parsed: ParsedFile, captures: list[Capture]
-) -> tuple[list[Symbol], list[Call], list[Import]]:
+) -> tuple[list[Symbol], list[Call], list[Import], list[TypeHint], list[Base]]:
     return graph_file(parsed, captures)

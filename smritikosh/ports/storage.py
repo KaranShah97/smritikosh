@@ -4,7 +4,16 @@ from __future__ import annotations
 
 from abc import ABC, abstractmethod
 
-from smritikosh.models import Call, Chunk, Edge, Import, SourceFile, Symbol
+from smritikosh.models import (
+    Base,
+    Call,
+    Chunk,
+    Edge,
+    Import,
+    SourceFile,
+    Symbol,
+    TypeHint,
+)
 
 __all__ = ["StorageAdapter"]
 
@@ -65,12 +74,16 @@ class StorageAdapter(ABC):
         symbols: list[Symbol],
         calls: list[Call],
         imports: list[Import],
+        hints: list[TypeHint],
+        bases: list[Base],
     ) -> None:
-        """Replace the symbols, calls and imports recorded for *path*."""
+        """Replace the symbols, calls, imports, type hints and bases for *path*."""
 
     @abstractmethod
-    def load_graph(self) -> tuple[list[Symbol], list[Call], list[Import]]:
-        """Return every stored symbol, call and import."""
+    def load_graph(
+        self,
+    ) -> tuple[list[Symbol], list[Call], list[Import], list[TypeHint], list[Base]]:
+        """Return every stored symbol, call, import, type hint and base."""
 
     @abstractmethod
     def replace_edges(self, edges: list[Edge]) -> None:

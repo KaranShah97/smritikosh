@@ -15,6 +15,7 @@ from smritikosh.models.retrieval import (
     TextMatch,
 )
 from smritikosh.models.types import (
+    Base,
     Call,
     Capture,
     Chunk,
@@ -25,9 +26,11 @@ from smritikosh.models.types import (
     SearchResult,
     SourceFile,
     Symbol,
+    TypeHint,
 )
 
 __all__ = [
+    "Base",
     "Call",
     "CandidateScore",
     "Capture",
@@ -49,5 +52,6 @@ __all__ = [
     "SourceFile",
     "SourceLine",
     "Symbol",
+    "TypeHint",
     "TextMatch",
 ]

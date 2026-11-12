@@ -57,15 +57,19 @@ class BatchGatherer:
 
     _WINDOW_SECS: float = 0.001  # 1 ms collection window
 
-    # Process-wide inference semaphore.  Lazily created so it binds to the
-    # running event loop on first use.  Class-level so it is shared across
+    # Process-wide inference semaphore.  Class-level so it is shared across
     # all BatchGatherer instances (all embedding calls share one device).
+    # Recreated per event loop: every build_index call runs its own loop, and
+    # a semaphore waited on in one loop cannot be waited on in another.
     _inference_sem: asyncio.Semaphore | None = None
+    _inference_loop: asyncio.AbstractEventLoop | None = None
 
     @classmethod
     def _get_inference_sem(cls) -> asyncio.Semaphore:
-        if cls._inference_sem is None:
+        loop = asyncio.get_running_loop()
+        if cls._inference_sem is None or cls._inference_loop is not loop:
             cls._inference_sem = asyncio.Semaphore(1)
+            cls._inference_loop = loop
         return cls._inference_sem
 
     def __init__(self, batch_fn: Callable[..., Any], max_size: int) -> None:
@@ -115,6 +119,7 @@ class BatchGatherer:
         fire_futures: list[asyncio.Future[Any]] | None = None
 
         async with self._get_lock():
+            self._window_task = None
             if self._pending:
                 fire_items = [it for it, _ in self._pending]
                 fire_futures = [f for _, f in self._pending]
