@@ -6,7 +6,16 @@ import duckdb
 import pytest
 
 from smritikosh.adapters.storage.duckdb import DuckDBAdapter
-from smritikosh.models import Call, Chunk, Edge, Import, SourceFile, Symbol
+from smritikosh.models import (
+    Base,
+    Call,
+    Chunk,
+    Edge,
+    Import,
+    SourceFile,
+    Symbol,
+    TypeHint,
+)
 
 # ── helpers ─────────────────────────────────────────────────────────────────
 
@@ -364,12 +373,14 @@ def test_clear_nodes_leaves_the_incremental_caches_alone(
 # ── call graph ──────────────────────────────────────────────────────────────
 
 
-def _graph(path: str, name: str) -> tuple[list[Symbol], list[Call], list[Import]]:
+def _graph(path: str, name: str) -> tuple[list, ...]:
     symbol = Symbol(f"{path}:{name}", name, "function", path, 1, 2, None)
     return (
         [symbol],
         [Call(path, symbol.id, None, "helper", 2)],
         [Import(path, "pkg.util", "helper", None)],
+        [TypeHint(path, symbol.id, "repo", "Repo")],
+        [Base(path, symbol.id, "Model")],
     )
 
 
@@ -381,10 +392,12 @@ def test_replace_graph_replaces_the_rows_of_that_path_only(
 
     adapter.replace_graph("a.py", *_graph("a.py", "new"))
 
-    symbols, calls, imports = adapter.load_graph()
+    symbols, calls, imports, hints, bases = adapter.load_graph()
     assert sorted(s.id for s in symbols) == ["a.py:new", "b.py:other"]
     assert sorted(c.scope for c in calls) == ["a.py:new", "b.py:other"]
     assert len(imports) == 2
+    assert sorted(h.scope for h in hints) == ["a.py:new", "b.py:other"]
+    assert sorted(b.symbol for b in bases) == ["a.py:new", "b.py:other"]
 
 
 def test_load_graph_round_trips_every_field(adapter: DuckDBAdapter) -> None:
@@ -402,10 +415,8 @@ def test_delete_file_removes_its_graph_rows(adapter: DuckDBAdapter) -> None:
 
     adapter.delete_file("del.py")
 
-    symbols, calls, imports = adapter.load_graph()
-    assert {s.path for s in symbols} == {"keep.py"}
-    assert {c.path for c in calls} == {"keep.py"}
-    assert {i.path for i in imports} == {"keep.py"}
+    for rows in adapter.load_graph():
+        assert {row.path for row in rows} == {"keep.py"}
 
 
 def test_replace_edges_drops_the_previous_set(adapter: DuckDBAdapter) -> None:
@@ -422,5 +433,5 @@ def test_clear_nodes_empties_the_call_graph(adapter: DuckDBAdapter) -> None:
 
     adapter.clear_nodes()
 
-    assert adapter.load_graph() == ([], [], [])
+    assert adapter.load_graph() == ([], [], [], [], [])
     assert adapter.con.execute("SELECT count(*) FROM edges").fetchone()[0] == 0

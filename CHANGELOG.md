@@ -16,6 +16,10 @@ heading is renamed to the version and a fresh `Unreleased` opens above it.
 
 - `explore impact NAME` lists the callers or callees of a Python definition, with
   the lines each call is made on. `--depth` follows them further.
+- Calls are linked through type hints, constructor assignments (`repo = Repo()`,
+  `self.client = Client()`) and methods inherited from base classes in the repo.
+- The first `smritikosh index` after upgrading reprocesses every file once to build the
+  call graph. Nothing is re-embedded.
 
 ### Fixed
 
