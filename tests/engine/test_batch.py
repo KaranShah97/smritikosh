@@ -59,6 +59,38 @@ async def test_gatherer_fires_on_window_timeout():
     assert fired == [2]
 
 
+def test_gatherer_overlapping_batches_work_in_a_second_event_loop():
+    """Each build_index runs its own loop; the shared semaphore must follow it."""
+
+    def batch_fn(items: list) -> list:
+        time.sleep(0.02)
+        return items
+
+    async def run() -> list:
+        gatherer = BatchGatherer(batch_fn, max_size=2)
+        return await asyncio.gather(*(gatherer.submit(i) for i in range(6)))
+
+    assert asyncio.run(run()) == [0, 1, 2, 3, 4, 5]
+    assert asyncio.run(run()) == [0, 1, 2, 3, 4, 5]
+
+
+async def test_gatherer_flushes_items_submitted_while_a_batch_runs():
+    """An item that arrives during an in-flight batch still gets its own flush."""
+
+    def batch_fn(items: list) -> list:
+        time.sleep(0.05)
+        return [i * 10 for i in items]
+
+    gatherer = BatchGatherer(batch_fn, max_size=32)
+    first = asyncio.create_task(gatherer.submit(1))
+    await asyncio.sleep(0.01)
+    second = asyncio.create_task(gatherer.submit(2))
+
+    results = await asyncio.wait_for(asyncio.gather(first, second), timeout=2)
+
+    assert results == [10, 20]
+
+
 async def test_gatherer_sync_batch_fn():
     """BatchGatherer wraps a sync function via asyncio.to_thread."""
 

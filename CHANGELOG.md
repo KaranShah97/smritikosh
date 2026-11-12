@@ -17,6 +17,13 @@ heading is renamed to the version and a fresh `Unreleased` opens above it.
 - `explore impact NAME` lists the callers or callees of a Python definition, with
   the lines each call is made on. `--depth` follows them further.
 
+### Fixed
+
+- Indexing twice in one process (for example `index --watch`) no longer fails with
+  "Semaphore is bound to a different event loop" when embedding batches overlap.
+- Indexing no longer hangs when a chunk is queued for embedding while an earlier batch
+  is still running.
+
 ## [0.4.0] - 2026-10-17
 
 ### Added
