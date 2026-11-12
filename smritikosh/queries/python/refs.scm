@@ -10,6 +10,16 @@
     object: (call function: (identifier) @receiver)
     attribute: (identifier) @name)) @call
 
+(call
+  function: (attribute
+    object: (attribute) @receiver
+    attribute: (identifier) @name)) @call
+
+(call
+  function: (attribute
+    object: (call function: (attribute) @receiver)
+    attribute: (identifier) @name)) @call
+
 (import_statement name: (dotted_name) @module) @import
 
 (import_statement

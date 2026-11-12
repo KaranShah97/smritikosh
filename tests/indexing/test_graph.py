@@ -138,6 +138,22 @@ def test_should_not_guess_methods_on_a_returned_value() -> None:
     assert edges == {("a.py:run", "a.py:make_repo")}
 
 
+def test_should_record_calls_on_attributes_and_returned_values() -> None:
+    _, calls, _ = _graph(
+        "a.py",
+        """
+        def run(self):
+            self.client.send()
+            Factory.get_client().send()
+        """,
+    )
+
+    assert [(c.receiver, c.name) for c in calls if c.name == "send"] == [
+        ("self.client", "send"),
+        ("Factory.get_client", "send"),
+    ]
+
+
 def test_should_not_guess_the_target_of_an_untyped_receiver() -> None:
     edges = _edges(
         {
